@@ -18,20 +18,20 @@ RUN apt-get update && apt-get install -y \
 # Instala o Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Define o diretório de trabalho dentro da pasta do Laravel
-WORKDIR /var/www/html/farmacia_backend-laravel
+# Define o diretório de trabalho no container
+WORKDIR /var/www/html
 
-# Copia apenas a pasta do Laravel
-COPY farmacia_backend-laravel/ .
+# Copia todos os arquivos do Laravel
+COPY . .
 
-# Instala as dependências do Laravel
+# Instala dependências do Laravel
 RUN composer install --no-dev --optimize-autoloader
 
-# Dá permissão para storage e bootstrap
-RUN chmod -R 775 storage bootstrap/cache
+# Dá permissão para storage e bootstrap/cache
+RUN chmod -R 775 storage bootstrap/cache || true
 
-# Gera a chave da aplicação Laravel
-RUN php artisan key:generate --force
+# Gera a chave da aplicação Laravel (ignora erro se já existir)
+RUN php artisan key:generate --force || true
 
 # Expõe a porta 8000 e inicia o servidor
 EXPOSE 8000
