@@ -1,13 +1,10 @@
-# Usa a imagem base do PHP 8.2 com Apache
-FROM php:8.2-apache
+# Usa uma imagem base PHP 8.2 com FPM
+FROM php:8.2-fpm
 
-# Define o diretório de trabalho
-WORKDIR /var/www/html
-
-# Instala dependências do sistema e extensões PHP necessárias para Laravel
+# Instala dependências do sistema
 RUN apt-get update && apt-get install -y \
     libpng-dev \
-    libjpeg-dev \
+    libjpeg62-turbo-dev \
     libfreetype6-dev \
     libzip-dev \
     zip \
@@ -15,25 +12,28 @@ RUN apt-get update && apt-get install -y \
     git \
     curl \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install gd pdo pdo_mysql pdo_pgsql zip
-
-# Copia os arquivos do projeto Laravel para dentro do container
-COPY . .
+    && docker-php-ext-install gd pdo pdo_mysql pdo_pgsql zip \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Instala o Composer
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Instala as dependências do Laravel
+# Define o diretório de trabalho
+WORKDIR /var/www/html
+
+# Copia os arquivos do projeto Laravel
+COPY . .
+
+# Instala dependências do Laravel
 RUN composer install --no-dev --optimize-autoloader
 
-# Gera a APP_KEY automaticamente (caso não exista)
-RUN php artisan key:generate || true
+# Dá permissão para storage e bootstrap
+RUN chmod -R 775 storage bootstrap/cache
 
-# Ajusta permissões para o Laravel poder escrever no storage e cache
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+# Gera a chave da aplicação Laravel
+RUN php artisan key:generate --force
 
-# Expõe a porta 80
-EXPOSE 80
+# Expõe a porta 8000 e inicia o servidor
+EXPOSE 8000
 
-# Inicia o servidor Apache
-CMD ["apache2-foreground"]
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
