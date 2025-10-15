@@ -18,13 +18,13 @@ RUN apt-get update && apt-get install -y \
 # Instala o Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Define o diretório de trabalho
-WORKDIR /var/www/html
+# Define o diretório de trabalho dentro da pasta do Laravel
+WORKDIR /var/www/html/farmacia_backend-laravel
 
-# Copia os arquivos do projeto Laravel
-COPY . .
+# Copia apenas a pasta do Laravel
+COPY farmacia_backend-laravel/ .
 
-# Instala dependências do Laravel
+# Instala as dependências do Laravel
 RUN composer install --no-dev --optimize-autoloader
 
 # Dá permissão para storage e bootstrap
