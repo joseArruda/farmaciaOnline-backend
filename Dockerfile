@@ -1,39 +1,36 @@
-# Usa uma imagem base PHP 8.2 com FPM
-FROM php:8.2-fpm
+# Use a imagem oficial do PHP com Apache (ou FPM se preferir)
+FROM php:8.2-apache
 
-# Instala dependências do sistema
+# Definir variáveis de ambiente para não interações durante a instalação
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Instalar dependências e extensões necessárias
 RUN apt-get update && apt-get install -y \
     libpng-dev \
     libjpeg62-turbo-dev \
     libfreetype6-dev \
     libzip-dev \
+    libpq-dev \
     zip \
     unzip \
     git \
     curl \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install gd pdo pdo_mysql pdo_pgsql zip \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Instala o Composer
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+# Ativar módulos do Apache (se estiver usando Apache)
+RUN a2enmod rewrite
 
-# Define o diretório de trabalho no container
+# Definir diretório de trabalho
 WORKDIR /var/www/html
 
-# Copia todos os arquivos do Laravel
-COPY . .
+# Copiar código do projeto (opcional)
+# COPY . /var/www/html
 
-# Instala dependências do Laravel
-RUN composer install --no-dev --optimize-autoloader
+# Expor porta 80
+EXPOSE 80
 
-# Dá permissão para storage e bootstrap/cache
-RUN chmod -R 775 storage bootstrap/cache || true
-
-# Gera a chave da aplicação Laravel (ignora erro se já existir)
-RUN php artisan key:generate --force || true
-
-# Expõe a porta 8000 e inicia o servidor
-EXPOSE 8000
-
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+# Comando padrão ao iniciar o container
+CMD ["apache2-foreground"]
